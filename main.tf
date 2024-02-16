@@ -11,58 +11,85 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Create VPC, subnets, and default security group
-resource "aws_vpc" "my_vpc" {
-  cidr_block = "10.0.0.0/16"
+# Data source to get the default VPC
+data "aws_vpcs" "default" {
+  filter {
+    name   = "isDefault"
+    values = ["true"]
+  }
 }
 
-resource "aws_subnet" "subnet_a" {
-  vpc_id                  = aws_vpc.my_vpc.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = var.subnet_a_az
+# Create subnets in the default VPC
+resource "aws_subnet" "subnetpublicone" {
+  vpc_id                  = data.aws_vpcs.default.ids[0]
+  cidr_block              = var.subnet1_cidr
+  map_public_ip_on_launch = true
+  availability_zone       = "us-east-1a"
+
+  tags = {
+    Name = "subnetpublicone"
+  }
 }
 
-resource "aws_subnet" "subnet_b" {
-  vpc_id                  = aws_vpc.my_vpc.id
-  cidr_block              = "10.0.2.0/24"
-  availability_zone       = var.subnet_b_az
+resource "aws_subnet" "subnetpublictwo" {
+  vpc_id                  = data.aws_vpcs.default.ids[0]
+  cidr_block              = var.subnet2_cidr
+  map_public_ip_on_launch = true
+  availability_zone       = "us-east-1b"
+
+  tags = {
+    Name = "subnetpublictwo"
+  }
 }
 
-# Create security group allowing traffic from the internet
+# Creating a security group allowing traffic from the internet
 resource "aws_security_group" "web_sg" {
-  vpc_id = aws_vpc.my_vpc.id
+  vpc_id = data.aws_vpcs.default.ids[0]
 
+  # Ingress rule for HTTP
   ingress {
-    from_port = var.web_sg_ingress_port
-    to_port   = var.web_sg_ingress_port
-    protocol  = "tcp"
+    from_port   = var.web_sg_ingress_port
+    to_port     = var.web_sg_ingress_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Ingress rule for HTTPS
+  ingress {
+    from_port   = var.web_sg_ingress_port_https
+    to_port     = var.web_sg_ingress_port_https
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
-# Create an Auto Scaling group with user data to launch Apache web server
+# Launch configuration for Auto Scaling instances
 resource "aws_launch_configuration" "web_config" {
-  image_id        = var.ami_id
-  instance_type   = var.instance_type
-  security_groups = [aws_security_group.web_sg.id]
+  image_id      = "ami-0e731c8a588258d0d"
+  instance_type = var.instance_type
 
   user_data = <<-EOF
-              #!/bin/bash
-              yum install -y httpd
-              service httpd start
-              chkconfig httpd on
-              EOF
+    #!/bin/bash
+    yum install -y httpd
+    service httpd start
+    chkconfig httpd on
+  EOF
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
+# Auto Scaling group
 resource "aws_autoscaling_group" "web_asg" {
   desired_capacity     = 2
   max_size             = 5
   min_size             = 2
-  vpc_zone_identifier = [aws_subnet.subnet_a.id, aws_subnet.subnet_b.id]
+  vpc_zone_identifier  = [aws_subnet.subnetpublicone.id, aws_subnet.subnetpublictwo.id]
   launch_configuration = aws_launch_configuration.web_config.id
 }
 
-# Output the public IP addresses of the instances for verification
+# Output to display the public IP addresses of instances
 output "public_ips" {
   value = aws_instance.web_instances[*].public_ip
 }
@@ -71,14 +98,20 @@ output "public_ips" {
 resource "aws_instance" "web_instances" {
   count = 2
 
-  ami           = var.ami_id
+  ami           = "ami-0e731c8a588258d0d"
   instance_type = var.instance_type
-  subnet_id     = element([aws_subnet.subnet_a.id, aws_subnet.subnet_b.id], count.index)
+  subnet_id     = element([aws_subnet.subnetpublicone.id, aws_subnet.subnetpublictwo.id], count.index)
 
   user_data = <<-EOF
-              #!/bin/bash
-              yum install -y httpd
-              service httpd start
-              chkconfig httpd on
-              EOF
+    #!/bin/bash
+    yum install -y httpd
+    service httpd start
+    chkconfig httpd on
+  EOF
+}
+
+# S3 bucket creation
+resource "aws_s3_bucket" "jtyreeprojectbucket022024" {
+  bucket = "jtyreeprojectbucket022024"
+  acl    = "private"
 }
