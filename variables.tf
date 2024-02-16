@@ -1,44 +1,29 @@
-# variables.tf
-
-# AWS Region where resources will be created
-variable "aws_region" {
-  description = "The AWS region where resources will be created."
-  type        = string
-  default     = "us-east-1"  # Change this to your desired region
+variable "subnet1_cidr" {
+  description = "CIDR block for subnetpublicone"
+  default     = "172.31.40.0/24"
 }
 
-# Availability Zone for subnet A
-variable "subnet_a_az" {
-  description = "Availability Zone for subnet A."
-  type        = string
-  default     = "us-east-1a"  # Change this to your desired AZ
+variable "subnet2_cidr" {
+  description = "CIDR block for subnetpublictwo"
+  default     = "172.31.30.0/24"
 }
 
-# Availability Zone for subnet B
-variable "subnet_b_az" {
-  description = "Availability Zone for subnet B."
-  type        = string
-  default     = "us-east-1b"  # Change this to your desired AZ
+variable "web_sg_ingress_port" {
+  description = "Ingress port for HTTP"
+  default     = 80
 }
 
-# ID of the Amazon Machine Image (AMI) for instances
-variable "ami_id" {
-  description = "The ID of the Amazon Machine Image (AMI) for instances."
-  type        = string
-  # Specify your desired AMI ID
-  default     = "ami-xxxxxxxxxxxxxxxx"
+variable "web_sg_ingress_port_https" {
+  description = "Ingress port for HTTPS"
+  default     = 443
 }
 
-# Type of EC2 instance to launch
 variable "instance_type" {
-  description = "The type of EC2 instance to launch."
-  type        = string
+  description = "EC2 instance type for Auto Scaling group"
   default     = "t2.micro"
 }
 
-# Ingress port for the web security group
-variable "web_sg_ingress_port" {
-  description = "The ingress port for the web security group."
-  type        = number
-  default     = 80
+variable "aws_region" {
+  description = "AWS region for resources"
+  default     = "us-east-1"
 }
