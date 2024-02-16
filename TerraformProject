@@ -14,8 +14,8 @@ provider "aws" {
 
 # Create an EC2 instance
 resource "aws_instance" "Jenkins-Terraform" {
-  ami           = "ami-0277155c3f0ab2930" # Specify the desired AMI ID
-  instance_type = "t2.micro"              # Specify the desired instance type
+  ami           = "ami-0277155c3f0ab2930" 
+  instance_type = "t2.micro"              
 
   key_name = "LUIT-John" # Specify the key pair name for SSH access
 
